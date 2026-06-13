@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-touch-fullscreen" content="yes">
+<title>Pool Lane Availability</title>
+<style>
+html{height:100%;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+body{min-height:100%;margin:0;padding:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+:root{--dk:#0a1628;--mid:#0d3b66;--blue:#1a73e8;--light:#4fc3f7;--sky:#b3e5fc;--foam:#e1f5fe;
+--bg:#f0f7ff;--card:#ffffff;--tx:#0d1b2a;--txs:#546e7a;--bdr:#b0cfe0;
+--gn:#c8e6c9;--gnt:#1b5e20;--gnr:#2e7d32;--yw:#fff9c4;--ywt:#f57f17;--ywr:#f9a825;
+--rd:#ffcdd2;--rdt:#b71c1c;--rdr:#e53935;--gy:#e0e8f0;--gyt:#607d8b;
+--rad:12px;--sh:0 2px 12px rgba(13,59,102,.10);}
+*{box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--tx);line-height:1.5;
+background-image:radial-gradient(ellipse at 30% 50%,rgba(79,195,247,.08) 0%,transparent 50%),radial-gradient(ellipse at 70% 30%,rgba(26,115,232,.06) 0%,transparent 45%),radial-gradient(ellipse at 50% 80%,rgba(179,229,252,.07) 0%,transparent 50%);background-attachment:fixed;position:relative;}
+body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;}
+body::before{width:600px;height:600px;top:15%;left:-8%;border:1.5px solid rgba(26,115,232,.04);animation:ripple 14s ease-in-out infinite;}
+body::after{width:450px;height:450px;bottom:5%;right:-5%;border:1.5px solid rgba(79,195,247,.04);animation:ripple 14s ease-in-out infinite -7s;}
+@keyframes ripple{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.35);opacity:0}}
+.container{max-width:1360px;margin:0 auto;padding:10px;position:relative;z-index:1;}
+header{background:linear-gradient(135deg,var(--dk),var(--mid),var(--blue),var(--light));color:#fff;padding:20px 0 0;text-align:center;position:relative;overflow:hidden;}
+header::after{content:'';position:absolute;top:0;left:-100%;width:200%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.07) 50%,transparent 100%);animation:shimmer 8s ease-in-out infinite;pointer-events:none;}
+@keyframes shimmer{0%,100%{transform:translateX(-25%)}50%{transform:translateX(25%)}}
+header h1{font-size:1.4rem;font-weight:800;text-shadow:0 2px 12px rgba(0,0,0,.3);position:relative;z-index:1;}
+header p{opacity:.9;font-size:.8rem;margin-top:2px;position:relative;z-index:1;}
+.clock{font-size:.85rem;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums;opacity:.92;position:relative;z-index:1;}
+.wave-wrap{position:relative;height:35px;overflow:hidden;z-index:1;}
+.wave-track{display:flex;width:200%;animation:waveScroll 10s linear infinite;}
+@keyframes waveScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.wave-track svg{flex:0 0 50%;height:35px;display:block;}
+.section{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:12px;margin-top:10px;border:1px solid var(--bdr);}
+.stitle{font-size:.95rem;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px;color:var(--blue);}
+.status-bar{background:rgba(240,247,255,.97);border:1px solid var(--bdr);border-radius:10px;padding:5px 10px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:.7rem;}
+.status-bar.needs-setup{background:rgba(26,115,232,.06);border-color:var(--blue);}
+.sb-left{display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;}.sb-left:hover{opacity:.8;}
+.sb-gear{font-size:.85rem;}.sb-conn{font-weight:600;color:var(--tx);font-size:.65rem;white-space:nowrap;}
+.sb-right{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;}
+.pill{display:inline-flex;align-items:center;padding:1px 4px;border-radius:8px;font-size:.58rem;font-weight:600;white-space:nowrap;}
+.pill-live{background:var(--gn);color:var(--gnt);}.pill-cached{background:var(--yw);color:var(--ywt);}.pill-fallback{background:var(--rd);color:var(--rdt);}.pill-loading{background:var(--foam);color:var(--blue);}
+.sb-refresh{padding:1px 6px;border:1.5px solid var(--blue);background:transparent;color:var(--blue);border-radius:8px;font-size:.58rem;font-weight:600;cursor:pointer;flex-shrink:0;}.sb-refresh:hover{background:var(--foam);}.sb-refresh:disabled{opacity:.5;cursor:wait;}
+.sb-ts{font-size:.55rem;color:var(--txs);white-space:nowrap;}
+.sb-dropdown{max-height:0;overflow:hidden;transition:max-height .4s ease;background:var(--card);border-radius:0 0 10px 10px;margin:-1px 0 0;border:1px solid var(--bdr);border-top:none;}
+.sb-dropdown.open{max-height:700px;}
+.sb-dropdown-inner{padding:12px;}
+.steps{counter-reset:step;margin:8px 0;padding:0;list-style:none;}
+.steps li{counter-increment:step;padding:3px 0 3px 26px;position:relative;font-size:.78rem;line-height:1.4;}
+.steps li::before{content:counter(step);position:absolute;left:0;top:3px;width:18px;height:18px;background:var(--blue);color:#fff;border-radius:50%;text-align:center;line-height:18px;font-size:.62rem;font-weight:700;}
+.code-block{background:#0d1b2a;color:#b3e5fc;padding:8px;border-radius:6px;font-family:'Cascadia Code','Fira Code',monospace;font-size:.68rem;line-height:1.4;overflow-x:auto;position:relative;margin:6px 0;white-space:pre;}
+.copy-btn{position:absolute;top:4px;right:4px;background:#1a73e8;color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:.6rem;cursor:pointer;font-weight:600;}.copy-btn:hover{background:#0d3b66;}
+.proxy-row{display:flex;gap:4px;margin-top:5px;}
+.proxy-input{flex:1;padding:6px 8px;border:1.5px solid var(--bdr);border-radius:6px;font-size:.76rem;font-family:inherit;background:#fff;}.proxy-input:focus{border-color:var(--blue);outline:none;}
+.save-btn{padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;font-size:.76rem;cursor:pointer;}.save-btn:hover{background:var(--mid);}
+.day-sel{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.day-row{display:flex;gap:5px;justify-content:center;}
+.day-btn{padding:7px 13px;border:2px solid var(--blue);background:#fff;color:var(--blue);border-radius:20px;cursor:pointer;font-weight:600;font-size:.78rem;transition:all .25s;position:relative;}
+.day-btn:hover{background:var(--foam);transform:translateY(-1px);}
+.day-btn.active{background:linear-gradient(135deg,var(--blue),var(--light));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(26,115,232,.3);}
+.day-btn .dd{display:block;font-size:.56rem;font-weight:400;opacity:.78;}
+.day-btn .pw{display:block;font-size:.48rem;color:#e65100;font-weight:700;margin-top:1px;}
+.day-btn.today::after{content:"today";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.48rem;background:var(--light);color:#fff;padding:1px 6px;border-radius:6px;font-weight:700;letter-spacing:.2px;text-transform:uppercase;line-height:1.3;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.travel-toggle{cursor:pointer;justify-content:space-between;margin-bottom:0;}
+.travel-toggle:hover{opacity:.85;}
+.travel-summary{font-size:.7rem;font-weight:400;color:var(--txs);margin-left:auto;padding-right:5px;}
+.toggle-arrow{font-size:.7rem;transition:transform .3s ease;color:var(--blue);}
+.travel-body{overflow:hidden;transition:max-height .4s ease,opacity .3s ease;max-height:0;opacity:0;}
+.travel-body.open{max-height:600px;opacity:1;margin-top:10px;}
+.travel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tcard{border-radius:var(--rad);padding:10px;border:1px solid var(--bdr);border-left:3px solid;border-image:linear-gradient(180deg,var(--blue),var(--light)) 1;background:var(--card);}
+.tcard h3{font-size:.85rem;margin-bottom:4px;color:var(--mid);}
+.tcard .addr{font-size:.68rem;color:var(--txs);margin-bottom:6px;}
+.det{display:flex;justify-content:space-between;padding:3px 0;font-size:.78rem;border-bottom:1px dashed var(--bdr);}
+.det:last-of-type{border-bottom:none;}
+.det .la{color:var(--txs);}.det .va{font-weight:600;}
+.wbox{background:#fff3cd;border-left:3px solid #ffc107;padding:6px 8px;border-radius:5px;margin-top:8px;font-size:.74rem;line-height:1.4;}
+.sbox{background:var(--gn);border-left:3px solid var(--gnr);padding:6px 8px;border-radius:5px;margin-top:8px;font-size:.74rem;}
+.stale-ban{background:linear-gradient(90deg,#fff3cd,#ffeeba);border:1px solid #ffc107;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:.72rem;color:#856404;line-height:1.5;display:none;}
+.stale-ban.vis{display:block;}
+.table-wrap{overflow-x:hidden;overflow-y:auto;max-height:72vh;margin-top:5px;border-radius:8px;border:1px solid var(--bdr);-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:.72rem;table-layout:fixed;}
+thead th{background:linear-gradient(135deg,var(--mid),var(--blue),var(--light));color:#fff;font-weight:700;padding:6px 2px;border:1px solid rgba(255,255,255,.15);text-align:center;white-space:nowrap;position:sticky;top:0;z-index:3;font-size:.66rem;}
+th:first-child{width:50px;}
+th:nth-child(n+2){width:calc((100% - 50px)/3);}
+td{padding:3px 2px;border:1px solid var(--bdr);text-align:center;white-space:nowrap;vertical-align:middle;}
+tr:hover td{filter:brightness(.97);}
+tr.cur td{box-shadow:inset 0 0 0 2px var(--light);background:rgba(79,195,247,.08)!important;}
+tr.nxt td{box-shadow:inset 0 0 0 1px var(--sky);}
+.cg{background:var(--gn);color:var(--gnt);}
+.cy2{background:var(--yw);color:var(--ywt);}
+.cr{background:var(--rd);color:var(--rdt);}
+.cc{background:var(--gy);color:var(--gyt);font-style:italic;}
+.cs{border:2px dashed #e65100!important;}
+.aq{color:var(--blue);font-weight:800;font-size:.72rem;}
+.ct{font-size:.5rem;font-weight:700;padding:0px 2px;border-radius:2px;margin-left:1px;vertical-align:middle;display:inline-block;}
+.lc{background:#e1bee7;color:#6a1b9a;}.sc2{background:var(--foam);color:var(--blue);}
+.tc{font-weight:600;background:#f5f9ff!important;text-align:center!important;color:var(--mid);font-size:.7rem;}
+.ta{display:inline-block;width:10px;text-align:center;font-size:.58rem;vertical-align:middle;}
+.ci{display:inline-flex;align-items:center;gap:1px;justify-content:center;}
+.creche-badge{font-size:.55rem;cursor:help;vertical-align:middle;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.66rem;align-items:center;padding:8px;background:#f5f9ff;border-radius:6px;border:1px solid var(--bdr);}
+.li{display:flex;align-items:center;gap:3px;}
+.ls{width:14px;height:14px;border-radius:3px;border:1px solid var(--bdr);flex-shrink:0;}
+.sg{background:var(--gn);}.sy{background:var(--yw);}.sr{background:var(--rd);}.sgr{background:var(--gy);}
+.ss{border:2px dashed #e65100!important;background:#fff;}
+.dnote{background:#f5f9ff;border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:.7rem;color:var(--txs);margin-top:10px;line-height:1.5;}
+.dnote strong{color:var(--mid);}.dnote a{color:var(--blue);}
+.footer{text-align:center;padding:12px;color:var(--txs);font-size:.66rem;}.footer a{color:var(--blue);}
+@media(max-width:768px){header h1{font-size:1.2rem;}header p{font-size:.72rem;}.clock{font-size:.78rem;}.day-btn{padding:6px 10px;font-size:.72rem;}.section{padding:10px;}.travel-grid{grid-template-columns:1fr;}table{font-size:.66rem;}td{padding:2px 1px;}thead th{padding:5px 1px;font-size:.62rem;}.tc{font-size:.64rem;}.ct{font-size:.46rem;}.sb-ts{display:none;}.pill{font-size:.55rem;padding:1px 3px;}.sb-conn{font-size:.6rem;}.sb-refresh{font-size:.55rem;padding:1px 5px;}}
+</style>
+</head>
+<body>
+<header>
+<h1>&#x1F3CA;&#x200D;&#x2642;&#xFE0F; Pool Lane Availability</h1>
+<p>Northern Beaches &mdash; Manly ABC &amp; Warringah Aquatic Centre</p>
+<div class="clock" id="clock"></div>
+<div class="wave-wrap"><div class="wave-track">
+<svg viewBox="0 0 1440 35" preserveAspectRatio="none">
+<path d="M0,18 C120,32 240,6 360,18 C480,32 600,6 720,18 C840,32 960,6 1080,18 C1200,32 1320,6 1440,18 L1440,35 L0,35Z" fill="rgba(240,247,255,.25)"/>
+<path d="M0,24 C160,34 320,14 480,24 C640,34 800,14 960,24 C1120,34 1280,14 1440,24 L1440,35 L0,35Z" fill="rgba(240,247,255,.5)"/>
+<path d="M0,29 C200,35 400,23 600,29 C800,35 1000,23 1200,29 C1350,33 1440,27 1440,29 L1440,35 L0,35Z" fill="#f0f7ff"/>
+</svg>
+<svg viewBox="0 0 1440 35" preserveAspectRatio="none">
+<path d="M0,18 C120,32 240,6 360,18 C480,32 600,6 720,18 C840,32 960,6 1080,18 C1200,32 1320,6 1440,18 L1440,35 L0,35Z" fill="rgba(240,247,255,.25)"/>
+<path d="M0,24 C160,34 320,14 480,24 C640,34 800,14 960,24 C1120,34 1280,14 1440,24 L1440,35 L0,35Z" fill="rgba(240,247,255,.5)"/>
+<path d="M0,29 C200,35 400,23 600,29 C800,35 1000,23 1200,29 C1350,33 1440,27 1440,29 L1440,35 L0,35Z" fill="#f0f7ff"/>
+</svg>
+</div></div>
+</header>
+<div class="container">
+<div class="status-bar" id="statusBar">
+<div class="sb-left" onclick="toggleDropdown()"><span class="sb-gear">&#x2699;&#xFE0F;</span><span class="sb-conn" id="sbConn">Checking&hellip;</span></div>
+<div class="sb-right">
+<span class="pill pill-loading" id="pill-outdoor">Out:..</span>
+<span class="pill pill-loading" id="pill-indoor">In:..</span>
+<span class="pill pill-loading" id="pill-warringah">War:..</span>
+<button class="sb-refresh" id="refreshBtn" onclick="event.stopPropagation();loadAllData()">&#x1F504;</button>
+<span class="sb-ts" id="refreshTs"></span>
+</div></div>
+<div class="sb-dropdown" id="sbDropdown"><div class="sb-dropdown-inner">
+<p style="font-size:.78rem;margin-bottom:4px;"><strong>Enable live data</strong> &mdash; Google Apps Script proxy (2 min):</p>
+<ol class="steps">
+<li>Go to <a href="https://script.google.com" target="_blank"><strong>script.google.com</strong></a> &rarr; New Project</li>
+<li>Paste this code:</li>
+</ol>
+<div class="code-block" id="gasCode">function doGet(e) {
+  var url = e.parameter.url;
+  if (!url) return ContentService.createTextOutput('Missing url');
+  try {
+    var r = UrlFetchApp.fetch(url, {muteHttpExceptions: true});
+    var o = ContentService.createTextOutput(r.getContentText());
+    o.setMimeType(ContentService.MimeType.TEXT);
+    return o;
+  } catch(err) {
+    return ContentService.createTextOutput('Error: ' + err);
+  }
+}<button class="copy-btn" onclick="event.stopPropagation();copyCode()">Copy</button></div>
+<ol class="steps" start="3">
+<li>Deploy &rarr; Web app. Execute as=Me, Access=Anyone.</li>
+<li>Paste Web app URL below:</li>
+</ol>
+<div class="proxy-row">
+<input type="text" class="proxy-input" id="proxyInput" placeholder="https://script.google.com/macros/s/.../exec">
+<button class="save-btn" onclick="event.stopPropagation();saveProxy()">Save</button>
+</div>
+</div></div>
+<div class="section"><div class="stitle">&#x1F4C5; Select Day</div><div class="day-sel" id="daysel"></div></div>
+<div class="section">
+<div class="stitle travel-toggle" onclick="toggleTravel()">&#x1F697; Travel<span class="travel-summary" id="travelSummary"></span><span class="toggle-arrow" id="travelArrow">&#x25BC;</span></div>
+<div class="travel-body" id="travelBody"><div class="travel-grid"><div class="tcard" id="trM"></div><div class="tcard" id="trW"></div></div></div>
+</div>
+<div class="stale-ban" id="stale"></div>
+<div class="section"><div class="stitle">&#x1F4CA; Lanes &mdash; <span id="dayLbl"></span></div><div class="table-wrap" id="tw"></div>
+<div class="legend">
+<div class="li"><div class="ls sg"></div>&gt;70%</div>
+<div class="li"><div class="ls sy"></div>30-70%</div>
+<div class="li"><div class="ls sr"></div>&lt;30%</div>
+<div class="li"><div class="ls sgr"></div>Closed</div>
+<div class="li"><div class="ls ss"></div>Stale</div>
+<div class="li"><span class="aq">*</span>Aqua</div>
+<div class="li"><span class="ct lc">LC</span>50m</div>
+<div class="li"><span class="ct sc2">SC</span>25m</div>
+<div class="li">&#x1F476;Cr&egrave;che</div>
+</div></div>
+<div class="dnote" id="dnote"></div>
+</div>
+<div class="footer">Data from <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools" target="_blank">Northern Beaches Council</a>.<br><span id="upd"></span></div>
+
+<script>
+const URLS={outdoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/outdoor-50m',indoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/indoor-25m',warringah:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/warringah-aquatic-centre/lane-availability'};
+const FREE_PROXIES=[{url:'https://api.allorigins.win/get?url=',json:true,field:'contents'},{url:'https://api.allorigins.win/raw?url=',json:false},{url:'https://corsproxy.io/?url=',json:false},{url:'https://api.codetabs.com/v1/proxy?quest=',json:false}];
+const CACHE_KEYS={outdoor:'pool_cache_outdoor',indoor:'pool_cache_indoor',warringah:'pool_cache_warringah'};
+const T=["05:30","06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"];
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const spitWD=["10:15","11:15","13:15","14:15","20:15"],spitWE=["08:30","10:00","11:30","14:30","16:30","18:30","20:30","21:30"];
+const CRECHE_START="09:00",CRECHE_END="13:00";
+
+const FB={
+outdoor:{headers:[{day:"Mon",dateStr:"08/06",full:"Mon 08/06"},{day:"Tue",dateStr:"09/06",full:"Tue 09/06"},{day:"Wed",dateStr:"10/06",full:"Wed 10/06"},{day:"Thu",dateStr:"11/06",full:"Thu 11/06"},{day:"Fri",dateStr:"12/06",full:"Fri 12/06"},{day:"Sat",dateStr:"06/06",full:"Sat 06/06"},{day:"Sun",dateStr:"07/06",full:"Sun 07/06"}],rows:{
+"05:30":["C","4","4","4","4","C","C"],"06:00":["7","4","4","4","4","4","7"],"06:30":["7","4","4","4","4","4","7"],"07:00":["7","4","4","4","4","4","7"],"07:30":["7","7","7","7","7","4","7"],"08:00":["7","4*","4*","4*","4*","7","6"],"08:30":["7","4*","4*","4*","4*","7","6"],"09:00":["7","4","7","4","7","7","7"],"09:30":["7","4","7","4","7","7","7"],"10:00":["7","7","7","7","7","7","7"],"10:30":["7","7","7","7","7","7","7"],"11:00":["7","7","7","7","7","7","7"],"11:30":["7","7","7","7","7","7","7"],"12:00":["7","7","7","7","7","7","7"],"12:30":["7","7","7","7","7","7","7"],"13:00":["7","7","7","7","7","7","7"],"13:30":["7","7","7","7","7","7","7"],"14:00":["7","7","7","7","7","7","7"],"14:30":["7","7","7","7","7","7","7"],"15:00":["7","7","7","7","7","7","7"],"15:30":["7","7","7","7","7","7","7"],"16:00":["7","3","3","3","4","7","7"],"16:30":["7","3","3","3","4","7","7"],"17:00":["7","3","3","3","4","7","7"],"17:30":["7","3","3","3","4","7","7"],"18:00":["7","3","3","3","7","7","7"],"18:30":["7","7","3","3","7","7","7"],"19:00":["C","C","C","C","C","C","C"],"19:30":["C","C","C","C","C","C","C"],"20:00":["C","C","C","C","C","C","C"],"20:30":["C","C","C","C","C","C","C"],"21:00":["C","C","C","C","C","C","C"]}},
+indoor:{headers:[{day:"Mon",dateStr:"01/06",full:"Mon 01/06"},{day:"Tue",dateStr:"02/06",full:"Tue 02/06"},{day:"Wed",dateStr:"03/06",full:"Wed 03/06"},{day:"Thu",dateStr:"28/05",full:"Thu 28/05"},{day:"Fri",dateStr:"29/05",full:"Fri 29/05"},{day:"Sat",dateStr:"30/05",full:"Sat 30/05"},{day:"Sun",dateStr:"31/05",full:"Sun 31/05"}],rows:{
+"05:30":["2","2","2","2","2","C","C"],"06:00":["2","2","2","2","2","2","7"],"06:30":["2","2","2","2","2","2","7"],"07:00":["2","2","2","2","2","2","7"],"07:30":["2","7","7","6","2","2","7"],"08:00":["6","6","6","6","7","2","6"],"08:30":["6","6","6","7","7","3","6"],"09:00":["3*","3*","3*","3*","3*","5","6"],"09:30":["3*","3*","3*","3*","3*","5","6"],"10:00":["7","7","7","7","7","4","6"],"10:30":["7","7","7","7","7","4","6"],"11:00":["7","7","7","7","7","5","5"],"11:30":["7","7","7","7","7","5","5"],"12:00":["7","7","7","7","7","5","6"],"12:30":["7","7","7","7","7","6","6"],"13:00":["3*","3*","3*","3*","7","5","6"],"13:30":["3*","3*","3*","3*","7","6","6"],"14:00":["7","7","7","7","7","5","6"],"14:30":["7","7","7","7","7","6","6"],"15:00":["7","7","7","7","7","6","6"],"15:30":["5","7","5","5","5","6","6"],"16:00":["5","5","3","3","3","6","6"],"16:30":["3","5","3","3","3","6","6"],"17:00":["3","5","3","3","3","6","6"],"17:30":["3","5","3","3","3","6","6"],"18:00":["4","5","3","4","5","6","6"],"18:30":["7","6","7","5","7","6","6"],"19:00":["7","6","7","7","7","C","C"],"19:30":["7","7","7","7","7","C","C"],"20:00":["7","7","7","7","7","C","C"],"20:30":["7","7","7","7","7","C","C"],"21:00":["C","C","C","C","C","C","C"]}},
+warringah:{headers:[{day:"Mon",dateStr:"08",full:"MON 08"},{day:"Tue",dateStr:"09",full:"TUE 09"},{day:"Wed",dateStr:"10",full:"WED 10"},{day:"Thu",dateStr:"11",full:"THU 11"},{day:"Fri",dateStr:"12",full:"FRI 12"},{day:"Sat",dateStr:"13",full:"SAT 13"},{day:"Sun",dateStr:"14",full:"SUN 14"}],rows:{
+"05:30":["C","8","4*","8","8","C","C"],"07:30":["16","12","8","12","11","4","13"],"08:00":["16","16","8","15","16","3","5"],"08:30":["16","16","15","15","16","3","1"],"09:00":["16","14","15","13","16","11","9"],"09:30":["16","10","7","5","8","11","9"],"10:00":["16","11","7","6","8","11","9"],"10:30":["16","16","15","15","16","12","9"],"11:00":["16","16","15","15","12","12","9"],"11:30":["16","16","15","13","12","12","9"],"12:00":["16","16","15","13","16","16","13"],"12:30":["16","16","16","16","16","13","13"],"13:00":["16","16","16","16","16","13","13"],"13:30":["16","16","16","16","16","13","13"],"14:00":["16","14","16","14","16","13","13"],"14:30":["16","16","16","16","16","13","13"],"15:00":["16","15","15","15","16","13","13"],"15:30":["16","12","12","13","13","16","16"],"16:00":["16","8","4","8","8","16","16"],"16:30":["16","8","4","8","8","16","16"],"17:00":["16","8","4","9","6","16","8"],"17:30":["16","4","4","5","6","16","8"],"18:00":["C","5","4","6","6","C","C"],"18:30":["C","13","6","6","9","C","C"],"19:00":["C","9","4","4","8","C","C"],"19:30":["C","9","4","4","8","C","C"],"20:00":["C","16","4","8","8","C","C"],"21:00":["C","C","C","C","C","C","C"]}}
+};
+
+let poolData={outdoor:null,indoor:null,warringah:null},poolSource={outdoor:'loading',indoor:'loading',warringah:'loading'},poolHeaders={outdoor:null,indoor:null,warringah:null},selDay=0;
+
+function getProxyUrl(){return localStorage.getItem('pool_proxy_url')||'';}
+function updateConnLabel(){const bar=document.getElementById('statusBar'),lbl=document.getElementById('sbConn');if(getProxyUrl()){bar.classList.remove('needs-setup');lbl.innerHTML='&#9989; Live';}else{bar.classList.add('needs-setup');lbl.innerHTML='&#9888;&#65039; Setup needed';}}
+function toggleDropdown(){const dd=document.getElementById('sbDropdown');dd.classList.toggle('open');if(dd.classList.contains('open'))document.getElementById('proxyInput').value=getProxyUrl();}
+function saveProxy(){const url=document.getElementById('proxyInput').value.trim();if(url){localStorage.setItem('pool_proxy_url',url);document.getElementById('sbDropdown').classList.remove('open');updateConnLabel();loadAllData();}}
+function copyCode(){const code=document.getElementById('gasCode').textContent.replace('Copy','').trim();navigator.clipboard.writeText(code).then(()=>{const btn=document.querySelector('.copy-btn');btn.textContent='OK!';setTimeout(()=>btn.textContent='Copy',2000);});}
+function toggleTravel(){const body=document.getElementById('travelBody'),arrow=document.getElementById('travelArrow');body.classList.toggle('open');arrow.style.transform=body.classList.contains('open')?'rotate(180deg)':'';}
+function setPill(key,src,extra){const el=document.getElementById('pill-'+key);const name=key==='outdoor'?'Out':key==='indoor'?'In':'War';
+if(src==='live'){el.className='pill pill-live';el.textContent=name+':'+'\u2713';}
+else if(src==='cached'){el.className='pill pill-cached';el.textContent=name+':'+(extra||'?');}
+else if(src==='fallback'){el.className='pill pill-fallback';el.textContent=name+':FB';}
+else{el.className='pill pill-loading';el.textContent=name+':..';}}
+
+async function fetchUrl(u){const g=getProxyUrl();
+if(g){try{const a=new AbortController(),t=setTimeout(()=>a.abort(),15000),r=await fetch(g+'?url='+encodeURIComponent(u),{signal:a.signal});clearTimeout(t);if(r.ok){const x=await r.text();if(x.length>500&&!x.startsWith('Error'))return{html:x};}}catch(e){}}
+for(const p of FREE_PROXIES){try{const a=new AbortController(),t=setTimeout(()=>a.abort(),12000),r=await fetch(p.url+encodeURIComponent(u)+'&_t='+Date.now(),{signal:a.signal,headers:{'Cache-Control':'no-cache'}});clearTimeout(t);if(!r.ok)continue;if(p.json){const j=await r.json();if(j&&j[p.field]&&j[p.field].length>500)return{html:j[p.field]};}else{const x=await r.text();if(x.length>500)return{html:x};}}catch(e){}}return null;}
+
+function parsePoolTable(html){const doc=new DOMParser().parseFromString(html,'text/html');for(const tbl of doc.querySelectorAll('table')){const rows=[...tbl.querySelectorAll('tr')];if(rows.length<2)continue;let hc=null;for(const row of rows){const ths=[...row.querySelectorAll('th')];if(ths.length>1&&ths[0].textContent.trim().toLowerCase().includes('time')){hc=ths;break;}const tds=[...row.querySelectorAll('td')];if(tds.length>1&&tds[0].textContent.trim().toLowerCase().includes('time')){hc=tds;break;}}if(!hc)continue;const headers=[];for(let i=1;i<hc.length;i++){const t=hc[i].textContent.trim(),m=t.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*\s+([\d\/]+)/i);if(m)headers.push({day:m[1].charAt(0).toUpperCase()+m[1].slice(1,3).toLowerCase(),dateStr:m[2],full:t});}if(!headers.length)continue;const data={};for(const row of rows){const cells=[...row.querySelectorAll('td')];if(cells.length<2)continue;const raw=cells[0].textContent.trim().replace(/\./g,':');if(!/^\d{1,2}:\d{2}$/.test(raw))continue;const time=raw.replace(/^(\d):/,'0$1:');const vals=[];for(let c=1;c<cells.length&&c<=headers.length;c++)vals.push(cells[c].textContent.trim());data[time]=vals;}if(Object.keys(data).length>0)return{headers,rows:data};}return null;}
+
+function pv(s){if(!s||s.toLowerCase()==='closed'||s==='C'||s==='')return null;return{v:parseInt(s),aqua:s.includes('*')};}
+function buildGrid(p){if(!p)return null;const{headers,rows}=p,grid={};headers.forEach((h,ci)=>{const arr=[];let last=null;for(const t of T){if(rows[t]&&ci<rows[t].length){const v=pv(rows[t][ci]);last=v;arr.push({val:v});}else arr.push({val:last});}grid[h.day]=arr;});return{headers,grid};}
+function cacheSet(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch(e){}}
+function cacheGet(k){try{const r=localStorage.getItem(k);if(!r)return null;const o=JSON.parse(r),a=(Date.now()-o.ts)/864e5;if(a>14)return null;return{data:o.data,ageDays:Math.round(a*10)/10};}catch(e){return null;}}
+
+async function loadPool(key){setPill(key,'loading');const result=await fetchUrl(URLS[key]);
+if(result){const parsed=parsePoolTable(result.html);if(parsed){const built=buildGrid(parsed);if(built){poolData[key]=built;poolHeaders[key]=built.headers;poolSource[key]='live';cacheSet(CACHE_KEYS[key],parsed);setPill(key,'live');return;}}}
+const cached=cacheGet(CACHE_KEYS[key]);if(cached){const built=buildGrid(cached.data);if(built){poolData[key]=built;poolHeaders[key]=built.headers;poolSource[key]='cached';setPill(key,'cached',cached.ageDays+'d');return;}}
+const built=buildGrid(FB[key]);poolData[key]=built;poolHeaders[key]=built.headers;poolSource[key]='fallback';setPill(key,'fallback');}
+
+async function loadAllData(){const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='\u23F3';await Promise.all([loadPool('outdoor'),loadPool('indoor'),loadPool('warringah')]);btn.disabled=false;btn.textContent='\uD83D\uDD04';document.getElementById('refreshTs').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});initDays();renderAll();}
+
+function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function m2t(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function getDrive(d,di,nm){const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));return d==='manly'?(pk?20:15):(pk?30:22);}
+function checkSpit(di,dep,drv){const times=di>=5?spitWE:spitWD,w=[];times.forEach(t=>{const o=t2m(t);if(dep<o+10&&dep+drv+5>o)w.push(t);});return w;}
+function isCreche(di,ts){if(di>=5)return false;const m=t2m(ts);return m>=t2m(CRECHE_START)&&m<t2m(CRECHE_END);}
+function donut(pct,color){const C=28.27,off=C*(1-pct);return '<svg width="14" height="14" style="vertical-align:middle"><circle cx="7" cy="7" r="4.5" fill="none" stroke="#cfd8dc" stroke-width="2"/><circle cx="7" cy="7" r="4.5" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+off+'" transform="rotate(-90 7 7)"/></svg>';}
+function cCls(v,mx){if(v===null)return'cc';const p=v/mx;return p>0.7?'cg':p>=0.3?'cy2':'cr';}
+function rCol(v,mx){if(v===null)return'#ccc';const p=v/mx;return p>0.7?'#2e7d32':p>=0.3?'#f9a825':'#e53935';}
+
+function isStale(h){if(!h)return true;const today=new Date();for(const x of h){let ds=x.dateStr,day,month;if(ds.includes('/')){[day,month]=ds.split('/').map(Number);}else{day=parseInt(ds);month=today.getMonth()+1;}if((today-new Date(today.getFullYear(),month-1,day))/864e5>10)return true;}return false;}
+function isDayStale(key,di){const h=poolHeaders[key];if(!h||!h[di])return false;const x=h[di],today=new Date();let ds=x.dateStr,day,month;if(ds.includes('/')){[day,month]=ds.split('/').map(Number);}else{day=parseInt(ds);month=today.getMonth()+1;}return(today-new Date(today.getFullYear(),month-1,day))/864e5>10;}
+
+function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' AEST \u2014 '+n.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}
+
+function getDayDate(d,i){
+  const oH=poolHeaders.outdoor||FB.outdoor.headers;
+  const wH=poolHeaders.warringah||FB.warringah.headers;
+  const oh=oH.find(h=>h.day===d);
+  const wh=wH.find(h=>h.day===d);
+  let ds;
+  if(i>=5&&wh) ds=wh.dateStr; else ds=oh?oh.dateStr:(wh?wh.dateStr:'');
+  if(ds&&!ds.includes('/')){const mon=String(new Date().getMonth()+1).padStart(2,'0');ds=ds.padStart(2,'0')+'/'+mon;}
+  return ds;
+}
+
+function initDays(){const el=document.getElementById('daysel');el.innerHTML='';const ti=(new Date().getDay()+6)%7;
+const oH=poolHeaders.outdoor||FB.outdoor.headers;
+const row1=document.createElement('div');row1.className='day-row';
+const row2=document.createElement('div');row2.className='day-row';
+DAYS.forEach((d,i)=>{const b=document.createElement('button');
+const dateStr=getDayDate(d,i);
+const oh=oH.find(h=>h.day===d);
+const st=oh?isDayStale('outdoor',oH.indexOf(oh)):false;
+b.className='day-btn'+(i===ti?' active':'')+(i===ti?' today':'');
+let inner=d+'<span class="dd">'+dateStr+'</span>';if(st&&i<5)inner+='<span class="pw">prev</span>';
+b.innerHTML=inner;b.onclick=()=>selectDay(i);
+if(i<5)row1.appendChild(b);else row2.appendChild(b);});
+el.appendChild(row1);el.appendChild(row2);selDay=ti;}
+function selectDay(i){selDay=i;document.querySelectorAll('.day-btn').forEach((b,j)=>b.classList.toggle('active',j===i));renderAll();}
+
+function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;let sp=[];let anySpit=false;
+[{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly'},{dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War'}].forEach(p=>{
+const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=checkSpit(di,nm,drv);const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
+sp.push(p.short+'~'+drv+'m');if(s.length)anySpit=true;
+let h='<h3>'+p.name+'</h3><div class="addr">'+p.addr+'</div>';
+h+='<div class="det"><span class="la">Drive</span><span class="va">~'+drv+'min '+(pk?'(peak)':'')+'</span></div>';
+h+='<div class="det"><span class="la">ETA</span><span class="va">'+eta+'</span></div>';
+if(s.length)h+='<div class="wbox">&#9888;&#65039; Spit Bridge '+s.join(', ')+' +~10min</div>';
+else h+='<div class="sbox">&#9989; No Spit Bridge impact</div>';
+document.getElementById(p.el).innerHTML=h;});
+if(anySpit)sp.push('\u26A0\uFE0F Spit');
+const sumEl=document.getElementById('travelSummary');sumEl.textContent=sp.join(' \u2022 ');sumEl.style.color=anySpit?'#e65100':'';sumEl.style.fontWeight=anySpit?'600':'400';}
+
+function renderCell(grid,i,mx,stale,isWar,isLC,cr){
+if(!grid)return'<td class="cc">-</td>';const cell=grid[i];if(!cell)return'<td class="cc">-</td>';
+const v=cell.val,val=v?v.v:null;
+if(val===null)return'<td class="cc'+(stale?' cs':'')+'">-</td>';
+const pct=val/mx;let cls=cCls(val,mx)+(stale?' cs':'');
+let inner=donut(pct,rCol(val,mx))+val;
+if(v.aqua&&!isWar)inner+='<span class="aq">*</span>';
+if(isWar)inner+='<span class="ct '+(isLC?'lc':'sc2')+'">'+(isLC?'LC':'SC')+'</span>';
+if(cr)inner+='<span class="creche-badge">&#x1F476;</span>';
+return'<td class="'+cls+'"><div class="ci">'+inner+'</div></td>';}
+
+function renderTable(){const day=DAYS[selDay],di=selDay;
+const dateStr=getDayDate(day,di);
+document.getElementById('dayLbl').textContent=day+' '+dateStr;
+const n=new Date(),nm=n.getHours()*60+n.getMinutes();let curI=-1,nxtI=-1;
+for(let i=0;i<T.length;i++){const tm=t2m(T[i]),tn=i<T.length-1?t2m(T[i+1]):tm+30;if(nm>=tm&&nm<tn){curI=i;nxtI=i+1;break;}}
+const oH=poolHeaders.outdoor||FB.outdoor.headers;const oh=oH.find(h=>h.day===day);
+const oS=oh?isDayStale('outdoor',oH.indexOf(oh)):false,iS=isStale(poolHeaders.indoor),wS=isStale(poolHeaders.warringah);
+let h='<table><thead><tr><th>Time</th><th>Manly Out<br><span style="font-weight:400;font-size:.56rem;opacity:.85">50m max7'+(oS?'\u26A0':'')+'</span></th><th>Manly In<br><span style="font-weight:400;font-size:.56rem;opacity:.85">25m max7'+(iS?'\u26A0':'')+'</span></th><th>Warringah<br><span style="font-weight:400;font-size:.56rem;opacity:.85">SC16/LC8</span></th></tr></thead><tbody>';
+const oG=poolData.outdoor?poolData.outdoor.grid[day]:null,iG=poolData.indoor?poolData.indoor.grid[day]:null,wG=poolData.warringah?poolData.warringah.grid[day]:null;
+for(let i=0;i<T.length;i++){const rc=i===curI?' class="cur"':(i===nxtI?' class="nxt"':'');
+h+='<tr'+rc+'><td class="tc"><span class="ta">'+(i===curI?'\u25B6':'')+'</span>'+T[i]+'</td>';
+const cr=isCreche(di,T[i]);h+=renderCell(oG,i,7,oS,false,false,cr);h+=renderCell(iG,i,7,iS,false,false,cr);
+const isLC=(day==='Wed'&&i<=4);h+=renderCell(wG,i,isLC?8:16,wS,true,isLC,false);h+='</tr>';}
+h+='</tbody></table>';document.getElementById('tw').innerHTML=h;
+const sEl=document.getElementById('stale');const si=[];
+if(iS)si.push('<b>Indoor</b>');if(oS)si.push('<b>Outdoor Sat/Sun</b>');if(wS)si.push('<b>Warringah</b>');
+if(si.length){sEl.classList.add('vis');sEl.innerHTML='\u26A0\uFE0F Stale: '+si.join(', ');}else sEl.classList.remove('vis');}
+
+function renderNote(){const f=(k)=>{const h=poolHeaders[k];if(!h)return'-';return h.map(x=>x.full).join(', ')+' <span style="color:'+(poolSource[k]==='live'?'#2e7d32':poolSource[k]==='cached'?'#e65100':'#c62828')+';font-weight:600">('+poolSource[k]+')</span>';};
+let h='<strong>Sources</strong><br>';
+h+='\u2022 <b>Outdoor:</b> '+f('outdoor')+' <a href="'+URLS.outdoor+'" target="_blank">\u2197</a><br>';
+h+='\u2022 <b>Indoor:</b> '+f('indoor')+' <a href="'+URLS.indoor+'" target="_blank">\u2197</a><br>';
+h+='\u2022 <b>Warringah:</b> '+f('warringah')+' <a href="'+URLS.warringah+'" target="_blank">\u2197</a><br>';
+h+='\u2022 LC: Wed 5:30\u20138am. &#x1F476; Cr\u00e8che: Mon\u2013Fri 9\u20131pm.<br>';
+h+='\u2022 Peak: wkday 7\u20139am & 4\u20136pm. All routes cross Spit Bridge.';
+document.getElementById('dnote').innerHTML=h;}
+function renderAll(){renderTravel();renderTable();renderNote();}
+
+updateClock();setInterval(updateClock,1000);setInterval(()=>{renderTravel();renderTable();},60000);
+updateConnLabel();loadAllData();
+</script>
+</body>
+</html>
