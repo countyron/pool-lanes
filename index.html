@@ -213,7 +213,7 @@ let poolData={outdoor:null,indoor:null,warringah:null},poolSource={outdoor:'load
 let hasAutoScrolled=false;
 
 function getProxyUrl(){return localStorage.getItem('pool_proxy_url')||'';}
-function updateConnLabel(){const bar=document.getElementById('statusBar'),lbl=document.getElementById('sbConn');if(getProxyUrl()){bar.classList.remove('needs-setup');lbl.innerHTML='&#9989; Live';}else{bar.classList.add('needs-setup');lbl.innerHTML='&#9888;&#65039; Setup needed';}}
+function updateConnLabel(){const bar=document.getElementById('statusBar'),lbl=document.getElementById('sbConn');const sources=Object.values(poolSource);if(sources.some(s=>s==='loading')){lbl.innerHTML='Checking&hellip;';return;}bar.classList.remove('needs-setup');if(sources.some(s=>s==='live')){lbl.innerHTML='&#9989; Live';}else if(sources.some(s=>s==='cached')){lbl.innerHTML='&#9989; Cached';}else{lbl.innerHTML='&#x2139;&#xFE0F; Fallback';}}
 function toggleDropdown(){const dd=document.getElementById('sbDropdown');dd.classList.toggle('open');if(dd.classList.contains('open'))document.getElementById('proxyInput').value=getProxyUrl();}
 function saveProxy(){const url=document.getElementById('proxyInput').value.trim();if(url){localStorage.setItem('pool_proxy_url',url);document.getElementById('sbDropdown').classList.remove('open');updateConnLabel();loadAllData();}}
 function copyCode(){const code=document.getElementById('gasCode').textContent.replace('Copy','').trim();navigator.clipboard.writeText(code).then(()=>{const btn=document.querySelector('.copy-btn');btn.textContent='OK!';setTimeout(()=>btn.textContent='Copy',2000);});}
@@ -240,12 +240,12 @@ if(result){const parsed=parsePoolTable(result.html);if(parsed){const built=build
 const cached=cacheGet(CACHE_KEYS[key]);if(cached){const built=buildGrid(cached.data);if(built){poolData[key]=built;poolHeaders[key]=built.headers;poolSource[key]='cached';setPill(key,'cached',cached.ageDays+'d');return;}}
 const built=buildGrid(FB[key]);poolData[key]=built;poolHeaders[key]=built.headers;poolSource[key]='fallback';setPill(key,'fallback');}
 
-async function loadAllData(){const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='\u23F3';await Promise.all([loadPool('outdoor'),loadPool('indoor'),loadPool('warringah')]);btn.disabled=false;btn.textContent='\uD83D\uDD04';document.getElementById('refreshTs').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});initDays();renderAll();}
+async function loadAllData(){const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.textContent='\u23F3';await Promise.all([loadPool('outdoor'),loadPool('indoor'),loadPool('warringah')]);btn.disabled=false;btn.textContent='\uD83D\uDD04';document.getElementById('refreshTs').textContent=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});initDays();renderAll();updateConnLabel();}
 
 function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
 function m2t(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function getDrive(d,di,nm){const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));return d==='manly'?(pk?20:15):(pk?30:22);}
-function checkSpit(di,dep,drv){const times=di>=5?spitWE:spitWD,w=[];times.forEach(t=>{const o=t2m(t);if(dep<o+10&&dep+drv+5>o)w.push(t);});return w;}
+function checkSpit(di,dep){const times=di>=5?spitWE:spitWD,w=[];times.forEach(t=>{const o=t2m(t);if(dep<o+10&&dep+15>o)w.push(t);});return w;}
 function isCreche(di,ts){if(di>=5)return false;const m=t2m(ts);return m>=t2m(CRECHE_START)&&m<t2m(CRECHE_END);}
 function donut(pct,color){const C=28.27,off=C*(1-pct);return '<svg width="14" height="14" style="vertical-align:middle"><circle cx="7" cy="7" r="4.5" fill="none" stroke="#cfd8dc" stroke-width="2"/><circle cx="7" cy="7" r="4.5" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-dasharray="'+C+'" stroke-dashoffset="'+off+'" transform="rotate(-90 7 7)"/></svg>';}
 function cCls(v,mx){if(v===null)return'cc';const p=v/mx;return p>0.7?'cg':p>=0.3?'cy2':'cr';}
@@ -284,7 +284,7 @@ function selectDay(i){selDay=i;document.querySelectorAll('.day-btn').forEach((b,
 
 function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;let sp=[];let anySpit=false;
 [{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly'},{dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War'}].forEach(p=>{
-const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=checkSpit(di,nm,drv);const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
+const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=checkSpit(di,nm);const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
 sp.push(p.short+'~'+drv+'m');if(s.length)anySpit=true;
 let h='<h3>'+p.name+'</h3><div class="addr">'+p.addr+'</div>';
 h+='<div class="det"><span class="la">Drive</span><span class="va">~'+drv+'min '+(pk?'(peak)':'')+'</span></div>';
