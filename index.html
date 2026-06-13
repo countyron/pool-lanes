@@ -80,7 +80,7 @@ header p{opacity:.9;font-size:.8rem;margin-top:2px;position:relative;z-index:1;}
 .sbox{background:var(--gn);border-left:3px solid var(--gnr);padding:6px 8px;border-radius:5px;margin-top:8px;font-size:.74rem;}
 .stale-ban{background:linear-gradient(90deg,#fff3cd,#ffeeba);border:1px solid #ffc107;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:.72rem;color:#856404;line-height:1.5;display:none;}
 .stale-ban.vis{display:block;}
-.table-wrap{overflow-x:hidden;overflow-y:visible;margin-top:5px;border-radius:8px;border:1px solid var(--bdr);}
+.table-wrap{margin-top:5px;border-radius:8px;border:1px solid var(--bdr);}
 table{width:100%;border-collapse:collapse;font-size:.72rem;table-layout:fixed;}
 thead th{background:linear-gradient(135deg,var(--mid),var(--blue),var(--light));color:#fff;font-weight:700;padding:6px 2px;border:1px solid rgba(255,255,255,.15);text-align:center;white-space:nowrap;position:sticky;top:0;z-index:3;font-size:.66rem;}
 th:first-child{width:50px;}
@@ -210,6 +210,7 @@ warringah:{headers:[{day:"Mon",dateStr:"08",full:"MON 08"},{day:"Tue",dateStr:"0
 };
 
 let poolData={outdoor:null,indoor:null,warringah:null},poolSource={outdoor:'loading',indoor:'loading',warringah:'loading'},poolHeaders={outdoor:null,indoor:null,warringah:null},selDay=0;
+let hasAutoScrolled=false;
 
 function getProxyUrl(){return localStorage.getItem('pool_proxy_url')||'';}
 function updateConnLabel(){const bar=document.getElementById('statusBar'),lbl=document.getElementById('sbConn');if(getProxyUrl()){bar.classList.remove('needs-setup');lbl.innerHTML='&#9989; Live';}else{bar.classList.add('needs-setup');lbl.innerHTML='&#9888;&#65039; Setup needed';}}
@@ -314,8 +315,8 @@ const oH=poolHeaders.outdoor||FB.outdoor.headers;const oh=oH.find(h=>h.day===day
 const oS=oh?isDayStale('outdoor',oH.indexOf(oh)):false,iS=isStale(poolHeaders.indoor),wS=isStale(poolHeaders.warringah);
 let h='<table><thead><tr><th>Time</th><th>Manly Out<br><span style="font-weight:400;font-size:.56rem;opacity:.85">50m max7'+(oS?'\u26A0':'')+'</span></th><th>Manly In<br><span style="font-weight:400;font-size:.56rem;opacity:.85">25m max7'+(iS?'\u26A0':'')+'</span></th><th>Warringah<br><span style="font-weight:400;font-size:.56rem;opacity:.85">SC16/LC8</span></th></tr></thead><tbody>';
 const oG=poolData.outdoor?poolData.outdoor.grid[day]:null,iG=poolData.indoor?poolData.indoor.grid[day]:null,wG=poolData.warringah?poolData.warringah.grid[day]:null;
-const isToday=selDay===((new Date().getDay()+6)%7);
-for(let i=0;i<T.length;i++){let rc='';const classes=[];if(i===curI)classes.push('cur');else if(i===nxtI)classes.push('nxt');if(isToday&&t2m(T[i])<nm&&i!==curI)classes.push('past-row');if(classes.length)rc=' class="'+classes.join(' ')+'"';
+const todayIdx=(new Date().getDay()+6)%7;const isPastDay=selDay<todayIdx;const isToday=selDay===todayIdx;
+for(let i=0;i<T.length;i++){let rc='';const classes=[];if(i===curI)classes.push('cur');else if(i===nxtI)classes.push('nxt');if(isPastDay||(isToday&&t2m(T[i])<nm&&i!==curI))classes.push('past-row');if(classes.length)rc=' class="'+classes.join(' ')+'"';
 h+='<tr'+rc+'><td class="tc"><span class="ta">'+(i===curI?'\u25B6':'')+'</span>'+T[i]+'</td>';
 const cr=isCreche(di,T[i]);h+=renderCell(oG,i,7,oS,false,false,cr);h+=renderCell(iG,i,7,iS,false,false,cr);
 const isLC=(day==='Wed'&&i<=4);h+=renderCell(wG,i,isLC?8:16,wS,true,isLC,false);h+='</tr>';}
@@ -323,7 +324,7 @@ h+='</tbody></table>';document.getElementById('tw').innerHTML=h;
 const sEl=document.getElementById('stale');const si=[];
 if(iS)si.push('<b>Indoor</b>');if(oS)si.push('<b>Outdoor Sat/Sun</b>');if(wS)si.push('<b>Warringah</b>');
 if(si.length){sEl.classList.add('vis');sEl.innerHTML='\u26A0\uFE0F Stale: '+si.join(', ');}else sEl.classList.remove('vis');
-setTimeout(()=>{const cr=document.querySelector('tr.cur');if(cr)cr.scrollIntoView({behavior:'smooth',block:'center'});},300);}
+if(!hasAutoScrolled){hasAutoScrolled=true;setTimeout(()=>{const cr=document.querySelector('tr.cur');if(cr)cr.scrollIntoView({behavior:'smooth',block:'center'});},300);}}
 
 function renderNote(){const f=(k)=>{const h=poolHeaders[k];if(!h)return'-';return h.map(x=>x.full).join(', ')+' <span style="color:'+(poolSource[k]==='live'?'#2e7d32':poolSource[k]==='cached'?'#e65100':'#c62828')+';font-weight:600">('+poolSource[k]+')</span>';};
 let h='<strong>Sources</strong><br>';
