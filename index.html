@@ -111,9 +111,8 @@ tr.past-row{opacity:.4;}
 .footer a{color:var(--blue);}
 .offline-banner{display:none;position:fixed;top:0;left:0;right:0;background:#e53935;color:#fff;text-align:center;padding:6px;font-size:.72rem;font-weight:600;z-index:9999;}
 @media(max-width:600px){.travel-grid{grid-template-columns:1fr;}}
-.busy-link{display:inline-block;margin-top:6px;font-size:.68rem;color:var(--blue);text-decoration:none;font-weight:600;}.busy-link:hover{text-decoration:underline;}
 
-/* === NEW v17 STYLES === */
+/* === v17 STYLES === */
 
 /* Toast notification */
 .toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(13,27,42,.92);color:#fff;padding:8px 18px;border-radius:24px;font-size:.74rem;font-weight:600;z-index:10000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .4s;opacity:0;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -136,10 +135,11 @@ tr.past-row{opacity:.4;}
 
 /* Program pool cell */
 .pp-cell{font-size:.7rem;padding:2px 1px !important;width:30px;max-width:30px;}
+.pp-open{background:var(--gn);color:var(--gnt);}
+.pp-closed{background:var(--rd);color:var(--rdt);opacity:.4;}
 
-/* Settings lock */
-.sb-gear.locked{opacity:.6;cursor:default;}
-.sb-gear.locked:hover{opacity:.6;}
+/* Settings lock badge */
+.sb-gear.locked{font-size:.95rem;background:rgba(255,152,0,.18);padding:1px 5px;border-radius:8px;border:1px solid rgba(255,152,0,.35);}
 
 </style>
 </head>
@@ -151,8 +151,16 @@ tr.past-row{opacity:.4;}
 <p>Northern Beaches &mdash; Manly ABC &amp; Warringah Aquatic Centre</p>
 <div class="clock" id="clock"></div>
 <div class="wave-wrap"><div class="wave-track">
-<svg viewBox="0 0 1440 40" preserveAspectRatio="none"><path d="M0,25 C360,45 720,5 1080,25 C1260,35 1440,15 1440,20 L1440,40 L0,40Z" fill="rgba(240,247,255,.45)"/><path d="M0,30 C360,10 720,40 1080,20 C1260,10 1440,30 1440,25 L1440,40 L0,40Z" fill="rgba(240,247,255,.25)"/></svg>
-<svg viewBox="0 0 1440 40" preserveAspectRatio="none"><path d="M0,25 C360,45 720,5 1080,25 C1260,35 1440,15 1440,20 L1440,40 L0,40Z" fill="rgba(240,247,255,.45)"/><path d="M0,30 C360,10 720,40 1080,20 C1260,10 1440,30 1440,25 L1440,40 L0,40Z" fill="rgba(240,247,255,.25)"/></svg>
+<svg viewBox="0 0 1440 35" preserveAspectRatio="none">
+<path d="M0,18 C120,32 240,6 360,18 C480,32 600,6 720,18 C840,32 960,6 1080,18 C1200,32 1320,6 1440,18 L1440,35 L0,35Z" fill="rgba(240,247,255,.25)"/>
+<path d="M0,24 C160,34 320,14 480,24 C640,34 800,14 960,24 C1120,34 1280,14 1440,24 L1440,35 L0,35Z" fill="rgba(240,247,255,.5)"/>
+<path d="M0,29 C200,35 400,23 600,29 C800,35 1000,23 1200,29 C1350,33 1440,27 1440,29 L1440,35 L0,35Z" fill="#f0f7ff"/>
+</svg>
+<svg viewBox="0 0 1440 35" preserveAspectRatio="none">
+<path d="M0,18 C120,32 240,6 360,18 C480,32 600,6 720,18 C840,32 960,6 1080,18 C1200,32 1320,6 1440,18 L1440,35 L0,35Z" fill="rgba(240,247,255,.25)"/>
+<path d="M0,24 C160,34 320,14 480,24 C640,34 800,14 960,24 C1120,34 1280,14 1440,24 L1440,35 L0,35Z" fill="rgba(240,247,255,.5)"/>
+<path d="M0,29 C200,35 400,23 600,29 C800,35 1000,23 1200,29 C1350,33 1440,27 1440,29 L1440,35 L0,35Z" fill="#f0f7ff"/>
+</svg>
 </div></div>
 </header>
 <div class="container">
@@ -207,7 +215,8 @@ tr.past-row{opacity:.4;}
 <div class="li"><span class="ct lc">LC</span>50m</div>
 <div class="li"><span class="ct sc2">SC</span>25m</div>
 <div class="li">&#x1F476;Cr&egrave;che</div>
-<div class="li">&#x1F3CA;Prog&nbsp;Pool</div>
+<div class="li"><div class="ls sg"></div>PP Open</div>
+<div class="li"><div class="ls sr" style="opacity:.4"></div>PP Closed</div>
 </div></div>
 <div class="dnote" id="dnote"></div>
 </div>
@@ -266,7 +275,6 @@ let poolData={outdoor:null,indoor:null,warringah:null},poolSource={outdoor:'load
 let hasAutoScrolled=false;
 let weatherData=null;
 let settingsLocked=false;
-let lockTimer=null;
 
 /* ===== TOAST ===== */
 let toastTimer=null;
@@ -333,7 +341,7 @@ for(const p of FREE_PROXIES){try{const a=new AbortController(),t=setTimeout(()=>
 function parsePoolTable(html){const doc=new DOMParser().parseFromString(html,'text/html');for(const tbl of doc.querySelectorAll('table')){const rows=[...tbl.querySelectorAll('tr')];if(rows.length<2)continue;let hc=null;for(const row of rows){const ths=[...row.querySelectorAll('th')];if(ths.length>1&&ths[0].textContent.trim().toLowerCase().includes('time')){hc=ths;break;}const tds=[...row.querySelectorAll('td')];if(tds.length>1&&tds[0].textContent.trim().toLowerCase().includes('time')){hc=tds;break;}}if(!hc)continue;const headers=[];for(let i=1;i<hc.length;i++){const t=hc[i].textContent.trim(),m=t.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*\s+([\d\/]+)/i);if(m)headers.push({day:m[1].charAt(0).toUpperCase()+m[1].slice(1,3).toLowerCase(),dateStr:m[2],full:t});}if(!headers.length)continue;const data={};for(const row of rows){const cells=[...row.querySelectorAll('td')];if(cells.length<2)continue;const raw=cells[0].textContent.trim().replace(/\./g,':');if(!/^\d{1,2}:\d{2}$/.test(raw))continue;const time=raw.replace(/^(\d):/,'0$1:');const vals=[];for(let c=1;c<cells.length&&c<=headers.length;c++)vals.push(cells[c].textContent.trim());data[time]=vals;}if(Object.keys(data).length>0)return{headers,data};}return null;}
 
 function pv(s){if(!s)return{v:null,aqua:false};const c=s.replace(/\s/g,'');if(/^[cC]$|closed/i.test(c))return{v:null,aqua:false};const m=c.match(/^(\d+)(\*?)$/);return m?{v:parseInt(m[1]),aqua:m[2]==='*'}:{v:null,aqua:false};}
-function buildGrid(parsed){if(!parsed)return null;const grid={};DAYS.forEach(d=>{const di=parsed.headers.findIndex(h=>h.day===d);const arr=[];T.forEach(t=>{const row=parsed.data[t];arr.push(row&&di>=0&&di<row.length?{val:pv(row[di])}:{val:null});});grid[d]=arr;});return grid;}
+function buildGrid(parsed){if(!parsed)return null;const rows=parsed.data||parsed.rows;if(!rows)return null;const grid={};DAYS.forEach(d=>{const di=parsed.headers.findIndex(h=>h.day===d);const arr=[];let last=null;T.forEach(t=>{const row=rows[t];if(row&&di>=0&&di<row.length){const v=pv(row[di]);last=v;arr.push({val:v});}else{arr.push({val:last});}});grid[d]=arr;});return grid;}
 function cacheSet(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch(e){}}
 function cacheGet(k,ttl){try{const r=JSON.parse(localStorage.getItem(k));if(r&&Date.now()-r.ts<(ttl||86400000))return r.data;}catch(e){}return null;}
 
@@ -355,9 +363,7 @@ async function loadAllData(){
     } else {
       poolSource[key]='fallback';
       poolHeaders[key]=FB[key].headers;
-      const fbRows=FB[key].rows;const grid={};
-      DAYS.forEach(d=>{const di=FB[key].headers.findIndex(h=>h.day===d);const arr=[];T.forEach(t=>{const row=fbRows[t];arr.push(row&&di>=0&&di<row.length?{val:pv(row[di])}:{val:null});});grid[d]=arr;});
-      poolData[key]={grid};
+      poolData[key]={grid:buildGrid(FB[key])};
       setPill(key,'fallback');
     }
   }
@@ -441,7 +447,7 @@ function isPPOpen(dayIdx,timeStr){
   return false;
 }
 
-/* ===== EXISTING UTILITY FUNCTIONS ===== */
+/* ===== UTILITY FUNCTIONS ===== */
 function t2m(s){const[h,m]=s.split(':').map(Number);return h*60+m;}
 function m2t(m){if(m>=1440)m-=1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function getDrive(dest,di,nm){let base=dest==='manly'?20:25;if(di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080)))base+=10;return base;}
@@ -492,8 +498,8 @@ el.appendChild(row1);el.appendChild(row2);selDay=ti;}
 function selectDay(i){selDay=i;document.querySelectorAll('.day-btn').forEach((b,j)=>b.classList.toggle('active',j===i));renderAll();}
 
 function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;let sp=[];let anySpit=false;
-[{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly',mapUrl:'https://www.google.com/maps/place/Manly+Andrew+Boy+Charlton+Aquatic+Centre'},
- {dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War',mapUrl:'https://www.google.com/maps/place/Warringah+Aquatic+Centre'}].forEach(p=>{
+[{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly'},
+ {dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War'}].forEach(p=>{
 const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=checkSpit(di,nm);const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
 sp.push(p.short+'~'+drv+'m');if(s.length)anySpit=true;
 let h='<h3>'+p.name+'</h3><div class="addr">'+p.addr+'</div>';
@@ -501,7 +507,6 @@ h+='<div class="det"><span class="la">Drive</span><span class="va">~'+drv+'min '
 h+='<div class="det"><span class="la">ETA</span><span class="va">'+eta+'</span></div>';
 if(s.length)h+='<div class="wbox">&#9888;&#65039; Spit Bridge '+s.join(', ')+' +~10min</div>';
 else h+='<div class="sbox">&#9989; No Spit Bridge impact</div>';
-h+='<a class="busy-link" href="'+p.mapUrl+'" target="_blank">\uD83D\uDCCA Live busyness on Google Maps \u2197</a>';
 document.getElementById(p.el).innerHTML=h;});
 if(anySpit)sp.push('\u26A0\uFE0F Spit');
 const sumEl=document.getElementById('travelSummary');sumEl.textContent=sp.join(' \u2022 ');sumEl.style.color=anySpit?'#e65100':'';sumEl.style.fontWeight=anySpit?'600':'400';}
@@ -539,10 +544,10 @@ colgroup+='<col style="width:'+poolColW+'">';
 colgroup+='</colgroup>';
 
 let h='<table>'+colgroup+'<thead><tr><th>Time</th>';
-if(wxOn)h+='<th>Wx</th>';
+if(wxOn)h+='<th>W</th>';
 h+='<th>Manly Out<br><span style="font-weight:400;font-size:.56rem;opacity:.85">50m max7'+(oS?'\u26A0':'')+'</span></th>';
 h+='<th>Manly In<br><span style="font-weight:400;font-size:.56rem;opacity:.85">25m max7'+(iS?'\u26A0':'')+'</span></th>';
-if(ppOn)h+='<th title="Manly Program Pool \u2022 Public swim times">M+</th>';
+if(ppOn)h+='<th title="Manly Program Pool \u2022 Public swim times">PP</th>';
 h+='<th>Warringah<br><span style="font-weight:400;font-size:.56rem;opacity:.85">SC16/LC8</span></th></tr></thead><tbody>';
 const oG=poolData.outdoor?poolData.outdoor.grid[day]:null,iG=poolData.indoor?poolData.indoor.grid[day]:null,wG=poolData.warringah?poolData.warringah.grid[day]:null;
 const todayIdx=(new Date().getDay()+6)%7;const isPastDay=selDay<todayIdx;const isToday=selDay===todayIdx;
@@ -569,7 +574,11 @@ const cr=isCreche(di,T[i]);h+=renderCell(oG,i,7,oS,false,false,cr);h+=renderCell
 /* Program pool column */
 if(ppOn){
   const open=isPPOpen(di,T[i]);
-  h+='<td class="pp-cell">'+(open?'\uD83C\uDFCA':'')+'</td>';
+  if(open){
+    h+='<td class="pp-cell pp-open">\uD83C\uDFCA</td>';
+  } else {
+    h+='<td class="pp-cell pp-closed"></td>';
+  }
 }
 
 const isLC=(day==='Wed'&&i<=4);h+=renderCell(wG,i,isLC?8:16,wS,true,isLC,false);h+='</tr>';}
@@ -586,8 +595,7 @@ h+='\u2022 <b>Indoor:</b> '+f('indoor')+' <a href="'+URLS.indoor+'" target="_bla
 h+='\u2022 <b>Warringah:</b> '+f('warringah')+' <a href="'+URLS.warringah+'" target="_blank">\u2197</a><br>';
 h+='\u2022 <b>Program Pool:</b> <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-andrew-boy-charlton-aquatic-centre/lane-availability/program-pool" target="_blank">Manly Program Pool \u2197</a><br>';
 h+='\u2022 LC: Wed 5:30\u20138am. &#x1F476; Cr\u00e8che: Mon\u2013Fri 9\u20131pm.<br>';
-h+='\u2022 Peak: wkday 7\u20139am & 4\u20136pm. All routes cross Spit Bridge.<br>';
-h+='\u2022 <a href="https://www.google.com/maps/place/Manly+Andrew+Boy+Charlton+Aquatic+Centre" target="_blank">\uD83D\uDCCA Manly busyness</a> \u2022 <a href="https://www.google.com/maps/place/Warringah+Aquatic+Centre" target="_blank">\uD83D\uDCCA Warringah busyness</a> (Google Maps)';
+h+='\u2022 Peak: wkday 7\u20139am & 4\u20136pm. All routes cross Spit Bridge.';
 document.getElementById('dnote').innerHTML=h;}
 function renderAll(){renderTravel();renderTable();renderNote();}
 
