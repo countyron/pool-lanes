@@ -112,7 +112,7 @@ tr.past-row{opacity:.4;}
 .offline-banner{display:none;position:fixed;top:0;left:0;right:0;background:#e53935;color:#fff;text-align:center;padding:6px;font-size:.72rem;font-weight:600;z-index:9999;}
 @media(max-width:600px){.travel-grid{grid-template-columns:1fr;}}
 
-/* === v17 STYLES === */
+/* === v18 STYLES === */
 
 /* Toast notification */
 .toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(13,27,42,.92);color:#fff;padding:8px 18px;border-radius:24px;font-size:.74rem;font-weight:600;z-index:10000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .4s;opacity:0;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -220,7 +220,7 @@ tr.past-row{opacity:.4;}
 </div></div>
 <div class="dnote" id="dnote"></div>
 </div>
-<div class="footer">Data from <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools" target="_blank">Northern Beaches Council</a>.<br><span id="upd"></span><br>v17 &bull; Built 14 Jun 2026</div>
+<div class="footer">Data from <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools" target="_blank">Northern Beaches Council</a>.<br><span id="upd"></span><br>v18 &bull; Built 15 Jun 2026</div>
 
 <script>
 const URLS={outdoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/outdoor-50m',indoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/indoor-25m',warringah:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/warringah-aquatic-centre/lane-availability'};
@@ -453,7 +453,7 @@ function m2t(m){if(m>=1440)m-=1440;return String(Math.floor(m/60)).padStart(2,'0
 function getDrive(dest,di,nm){let base=dest==='manly'?20:25;if(di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080)))base+=10;return base;}
 function checkSpit(di,nm){const times=di<5?spitWD:spitWE;const near=[];times.forEach(t=>{const sm=t2m(t);if(Math.abs(nm-sm)<45)near.push(t);});return near;}
 function isCreche(di,t){if(di>=5)return false;const m=t2m(t);return m>=t2m(CRECHE_START)&&m<t2m(CRECHE_END);}
-function donut(pct,col){return'<svg width="16" height="16" viewBox="0 0 36 36" style="vertical-align:middle;margin-right:2px"><circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e8f0" stroke-width="3.5"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-dasharray="'+Math.round(pct*100)+' 100" stroke-dashoffset="25" stroke-linecap="round"/></svg>';}
+function donut(pct,col){return'<svg width="16" height="16" viewBox="0 0 36 36" style="vertical-align:middle;margin-right:2px"><circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e0e8f0" stroke-width="3.5"/><circle cx="18" cy="18" r="15.9155" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-dasharray="'+Math.round(pct*100)+' 100" stroke-dashoffset="25" stroke-linecap="round"/></svg>';}
 function rCol(v,mx){const p=v/mx;return p>.7?'#2e7d32':p>.3?'#f9a825':'#e53935';}
 function cCls(v,mx){const p=v/mx;return p>.7?'cg':p>.3?'cy':'cr';}
 
@@ -471,16 +471,8 @@ function isDayStale(key,colIdx){
 
 function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})+' AEST \u2014 '+n.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}
 
-function getDayDate(d,i){
-  const oH=poolHeaders.outdoor||FB.outdoor.headers;
-  const wH=poolHeaders.warringah||FB.warringah.headers;
-  const oh=oH.find(h=>h.day===d);
-  const wh=wH.find(h=>h.day===d);
-  let ds;
-  if(i>=5&&wh) ds=wh.dateStr; else ds=oh?oh.dateStr:(wh?wh.dateStr:'');
-  if(ds&&!ds.includes('/')){const mon=String(new Date().getMonth()+1).padStart(2,'0');ds=ds.padStart(2,'0')+'/'+mon;}
-  return ds;
-}
+function getCurrentWeekDate(dayIdx){var now=new Date();var todayIdx=(now.getDay()+6)%7;var diff=dayIdx-todayIdx;var d=new Date(now);d.setDate(d.getDate()+diff);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+function getDayDate(d,i){return getCurrentWeekDate(i);}
 
 function initDays(){const el=document.getElementById('daysel');el.innerHTML='';const ti=(new Date().getDay()+6)%7;
 const oH=poolHeaders.outdoor||FB.outdoor.headers;
@@ -497,10 +489,10 @@ if(i<5)row1.appendChild(b);else row2.appendChild(b);});
 el.appendChild(row1);el.appendChild(row2);selDay=ti;}
 function selectDay(i){selDay=i;document.querySelectorAll('.day-btn').forEach((b,j)=>b.classList.toggle('active',j===i));renderAll();}
 
-function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;let sp=[];let anySpit=false;
+function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;const todayIdx=(n.getDay()+6)%7;const isViewingToday=di===todayIdx;let sp=[];let anySpit=false;
 [{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly'},
  {dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War'}].forEach(p=>{
-const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=checkSpit(di,nm);const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
+const drv=getDrive(p.dest,di,nm),eta=m2t(nm+drv),s=isViewingToday?checkSpit(di,nm):[];const pk=di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080));
 sp.push(p.short+'~'+drv+'m');if(s.length)anySpit=true;
 let h='<h3>'+p.name+'</h3><div class="addr">'+p.addr+'</div>';
 h+='<div class="det"><span class="la">Drive</span><span class="va">~'+drv+'min '+(pk?'(peak)':'')+'</span></div>';
