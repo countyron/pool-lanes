@@ -200,7 +200,7 @@ tr.past-row{opacity:.4;}
 <div class="toggle-item">&#x1F326;&#xFE0F; Weather
 <label class="toggle-switch"><input type="checkbox" id="togWx" onchange="onToggleWx()"><span class="slider"></span></label>
 </div>
-<div class="toggle-item">&#x1F3CA; Program Pool
+<div class="toggle-item">&#x1F97D; Program Pool
 <label class="toggle-switch"><input type="checkbox" id="togPP" onchange="onTogglePP()"><span class="slider"></span></label>
 </div>
 </div>
@@ -453,7 +453,7 @@ function m2t(m){if(m>=1440)m-=1440;return String(Math.floor(m/60)).padStart(2,'0
 function getDrive(dest,di,nm){let base=dest==='manly'?20:25;if(di<5&&((nm>=420&&nm<540)||(nm>=960&&nm<1080)))base+=10;return base;}
 function checkSpit(di,nm){const times=di<5?spitWD:spitWE;const near=[];times.forEach(t=>{const sm=t2m(t);if(Math.abs(nm-sm)<45)near.push(t);});return near;}
 function isCreche(di,t){if(di>=5)return false;const m=t2m(t);return m>=t2m(CRECHE_START)&&m<t2m(CRECHE_END);}
-function donut(pct,col){return'<svg width="16" height="16" viewBox="0 0 36 36" style="vertical-align:middle;margin-right:2px"><circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e0e8f0" stroke-width="3.5"/><circle cx="18" cy="18" r="15.9155" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-dasharray="'+Math.round(pct*100)+' 100" stroke-dashoffset="25" stroke-linecap="round"/></svg>';}
+function donut(pct,col){var r=15.9155,c=2*Math.PI*r,p=Math.min(Math.max(pct,0),1);var bg='<circle cx="18" cy="18" r="'+r+'" fill="none" stroke="#e0e8f0" stroke-width="3.5"/>';var fg;if(p>=1){fg='<circle cx="18" cy="18" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="3.5"/>';} else if(p<=0){fg='';} else{fg='<circle cx="18" cy="18" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-dasharray="'+(p*c).toFixed(1)+' '+c.toFixed(1)+'" transform="rotate(-90 18 18)" stroke-linecap="round"/>';} return'<svg width="16" height="16" viewBox="0 0 36 36" style="vertical-align:middle;margin-right:2px">'+bg+fg+'</svg>';}
 function rCol(v,mx){const p=v/mx;return p>.7?'#2e7d32':p>.3?'#f9a825':'#e53935';}
 function cCls(v,mx){const p=v/mx;return p>.7?'cg':p>.3?'cy':'cr';}
 
@@ -489,6 +489,7 @@ if(i<5)row1.appendChild(b);else row2.appendChild(b);});
 el.appendChild(row1);el.appendChild(row2);selDay=ti;}
 function selectDay(i){selDay=i;document.querySelectorAll('.day-btn').forEach((b,j)=>b.classList.toggle('active',j===i));renderAll();}
 
+function getNextSpit(di,nm){var times=di<5?spitWD:spitWE;for(var i=0;i<times.length;i++){if(t2m(times[i])>nm)return times[i];}return null;}
 function renderTravel(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),di=selDay;const todayIdx=(n.getDay()+6)%7;const isViewingToday=di===todayIdx;let sp=[];let anySpit=false;
 [{dest:'manly',el:'trM',name:'Manly ABC',addr:'West Esplanade',short:'Manly'},
  {dest:'warringah',el:'trW',name:'Warringah AC',addr:'Aquatic Dr, Frenchs Forest',short:'War'}].forEach(p=>{
@@ -498,7 +499,7 @@ let h='<h3>'+p.name+'</h3><div class="addr">'+p.addr+'</div>';
 h+='<div class="det"><span class="la">Drive</span><span class="va">~'+drv+'min '+(pk?'(peak)':'')+'</span></div>';
 h+='<div class="det"><span class="la">ETA</span><span class="va">'+eta+'</span></div>';
 if(s.length)h+='<div class="wbox">&#9888;&#65039; Spit Bridge '+s.join(', ')+' +~10min</div>';
-else h+='<div class="sbox">&#9989; No Spit Bridge impact</div>';
+else{var nxt=isViewingToday?getNextSpit(di,nm):null;if(nxt){h+='<div class="sbox">&#9989; No Spit Bridge impact &middot; Next opening: '+nxt+'</div>';}else if(isViewingToday){h+='<div class="sbox">&#9989; No more bridge openings today</div>';}else{h+='<div class="sbox">&#9989; No Spit Bridge impact</div>';}}
 document.getElementById(p.el).innerHTML=h;});
 if(anySpit)sp.push('\u26A0\uFE0F Spit');
 const sumEl=document.getElementById('travelSummary');sumEl.textContent=sp.join(' \u2022 ');sumEl.style.color=anySpit?'#e65100':'';sumEl.style.fontWeight=anySpit?'600':'400';}
@@ -567,7 +568,7 @@ const cr=isCreche(di,T[i]);h+=renderCell(oG,i,7,oS,false,false,cr);h+=renderCell
 if(ppOn){
   const open=isPPOpen(di,T[i]);
   if(open){
-    h+='<td class="pp-cell pp-open">\uD83C\uDFCA</td>';
+    h+='<td class="pp-cell pp-open">\uD83E\uDD7D</td>';
   } else {
     h+='<td class="pp-cell pp-closed"></td>';
   }
