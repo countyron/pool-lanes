@@ -112,7 +112,7 @@ tr.past-row{opacity:.4;}
 .offline-banner{display:none;position:fixed;top:0;left:0;right:0;background:#e53935;color:#fff;text-align:center;padding:6px;font-size:.72rem;font-weight:600;z-index:9999;}
 @media(max-width:600px){.travel-grid{grid-template-columns:1fr;}}
 
-/* === v18 STYLES === */
+/* === v19 STYLES === */
 
 /* Toast notification */
 .toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(13,27,42,.92);color:#fff;padding:8px 18px;border-radius:24px;font-size:.74rem;font-weight:600;z-index:10000;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .4s;opacity:0;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -200,7 +200,7 @@ tr.past-row{opacity:.4;}
 <div class="toggle-item">&#x1F326;&#xFE0F; Weather
 <label class="toggle-switch"><input type="checkbox" id="togWx" onchange="onToggleWx()"><span class="slider"></span></label>
 </div>
-<div class="toggle-item">&#x1F97D; Program Pool
+<div class="toggle-item">&#x1F97D; PP / &#x1F4A6; LP
 <label class="toggle-switch"><input type="checkbox" id="togPP" onchange="onTogglePP()"><span class="slider"></span></label>
 </div>
 </div>
@@ -215,12 +215,12 @@ tr.past-row{opacity:.4;}
 <div class="li"><span class="ct lc">LC</span>50m</div>
 <div class="li"><span class="ct sc2">SC</span>25m</div>
 <div class="li">&#x1F476;Cr&egrave;che</div>
-<div class="li"><div class="ls sg"></div>PP Open</div>
-<div class="li"><div class="ls sr" style="opacity:.4"></div>PP Closed</div>
+<div class="li"><div class="ls sg"></div>PP/LP Open</div>
+<div class="li"><div class="ls sr" style="opacity:.4"></div>PP/LP Closed</div>
 </div></div>
 <div class="dnote" id="dnote"></div>
 </div>
-<div class="footer">Data from <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools" target="_blank">Northern Beaches Council</a>.<br><span id="upd"></span><br>v18 &bull; Built 15 Jun 2026</div>
+<div class="footer">Data from <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools" target="_blank">Northern Beaches Council</a>.<br><span id="upd"></span><br>v19 &bull; Built 15 Jun 2026</div>
 
 <script>
 const URLS={outdoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/outdoor-50m',indoor:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-aquatic-centre/lane-availability/indoor-25m',warringah:'https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/warringah-aquatic-centre/lane-availability'};
@@ -243,6 +243,10 @@ Thu:[[330,535],[725,910],[1115,1255]],
 Fri:[[330,535],[725,910],[1115,1255]],
 Sat:[[360,445],[965,1135]],
 Sun:[[360,475],[725,1135]]
+};
+const LP_SCHED={
+Mon:[[540,1135]],Tue:[[540,1135]],Wed:[[540,1135]],Thu:[[540,1135]],Fri:[[540,1135]],
+Sat:[[480,1075]],Sun:[[480,1075]]
 };
 
 const WMO_MAP={0:'\u2600\uFE0F',1:'\u26C5',2:'\u26C5',3:'\u2601\uFE0F',45:'\uD83C\uDF2B\uFE0F',48:'\uD83C\uDF2B\uFE0F',
@@ -446,6 +450,16 @@ function isPPOpen(dayIdx,timeStr){
   }
   return false;
 }
+function isLPOpen(dayIdx,timeStr){
+  const day=DAYS[dayIdx];
+  const sched=LP_SCHED[day];
+  if(!sched)return false;
+  const mins=t2m(timeStr);
+  for(const [s,e] of sched){
+    if(mins<e&&mins+30>s)return true;
+  }
+  return false;
+}
 
 /* ===== UTILITY FUNCTIONS ===== */
 function t2m(s){const[h,m]=s.split(':').map(Number);return h*60+m;}
@@ -527,12 +541,12 @@ const wxOn=isWxOn(),ppOn=isPPOn();
 /* Build colgroup for fixed layout */
 let colgroup='<colgroup><col style="width:50px">';
 if(wxOn) colgroup+='<col style="width:28px">';
-const extraPx=50+(wxOn?28:0)+(ppOn?30:0);
+const extraPx=50+(wxOn?28:0)+(ppOn?60:0);
 const poolCols=3;
 const poolColW='calc((100% - '+extraPx+'px) / '+poolCols+')';
 colgroup+='<col style="width:'+poolColW+'">';
 colgroup+='<col style="width:'+poolColW+'">';
-if(ppOn) colgroup+='<col style="width:30px">';
+if(ppOn) colgroup+='<col style="width:30px"><col style="width:30px">';
 colgroup+='<col style="width:'+poolColW+'">';
 colgroup+='</colgroup>';
 
@@ -540,7 +554,7 @@ let h='<table>'+colgroup+'<thead><tr><th>Time</th>';
 if(wxOn)h+='<th>W</th>';
 h+='<th>Manly Out<br><span style="font-weight:400;font-size:.56rem;opacity:.85">50m max7'+(oS?'\u26A0':'')+'</span></th>';
 h+='<th>Manly In<br><span style="font-weight:400;font-size:.56rem;opacity:.85">25m max7'+(iS?'\u26A0':'')+'</span></th>';
-if(ppOn)h+='<th title="Manly Program Pool \u2022 Public swim times">PP</th>';
+if(ppOn)h+='<th title="Manly Program Pool \u2022 Public swim times">PP</th><th title="Manly Leisure Pool \u2022 Public swim times">LP</th>';
 h+='<th>Warringah<br><span style="font-weight:400;font-size:.56rem;opacity:.85">SC16/LC8</span></th></tr></thead><tbody>';
 const oG=poolData.outdoor?poolData.outdoor.grid[day]:null,iG=poolData.indoor?poolData.indoor.grid[day]:null,wG=poolData.warringah?poolData.warringah.grid[day]:null;
 const todayIdx=(new Date().getDay()+6)%7;const isPastDay=selDay<todayIdx;const isToday=selDay===todayIdx;
@@ -572,6 +586,12 @@ if(ppOn){
   } else {
     h+='<td class="pp-cell pp-closed"></td>';
   }
+  const lpOpen=isLPOpen(di,T[i]);
+  if(lpOpen){
+    h+='<td class="pp-cell pp-open">\uD83D\uDCA6</td>';
+  } else {
+    h+='<td class="pp-cell pp-closed"></td>';
+  }
 }
 
 const isLC=(day==='Wed'&&i<=4);h+=renderCell(wG,i,isLC?8:16,wS,true,isLC,false);h+='</tr>';}
@@ -587,6 +607,7 @@ h+='\u2022 <b>Outdoor:</b> '+f('outdoor')+' <a href="'+URLS.outdoor+'" target="_
 h+='\u2022 <b>Indoor:</b> '+f('indoor')+' <a href="'+URLS.indoor+'" target="_blank">\u2197</a><br>';
 h+='\u2022 <b>Warringah:</b> '+f('warringah')+' <a href="'+URLS.warringah+'" target="_blank">\u2197</a><br>';
 h+='\u2022 <b>Program Pool:</b> <a href="https://www.northernbeaches.nsw.gov.au/things-to-do/swimming-pools/manly-andrew-boy-charlton-aquatic-centre/lane-availability/program-pool" target="_blank">Manly Program Pool \u2197</a><br>';
+h+='\u2022 <b>Leisure Pool:</b> <a href="https://www.northernbeaches.nsw.gov.au/things-do/swimming-pools/manly-aquatic-centre/lane-availability/leisure-pool" target="_blank">Manly Leisure Pool \u2197</a> Mon\u2013Fri 9am\u20136:55pm, Sat\u2013Sun 8am\u20135:55pm<br>';
 h+='\u2022 LC: Wed 5:30\u20138am. &#x1F476; Cr\u00e8che: Mon\u2013Fri 9\u20131pm.<br>';
 h+='\u2022 Peak: wkday 7\u20139am & 4\u20136pm. All routes cross Spit Bridge.';
 document.getElementById('dnote').innerHTML=h;}
