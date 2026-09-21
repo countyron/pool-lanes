@@ -382,12 +382,46 @@ async function loadAllData(){
   /* Phase 2: Fetch live data in background */
   let anyLive=false;
   const promises=['outdoor','indoor','warringah'].map(async key=>{
-    const url=URLS[key];
-    try{
-      const fetched=await fetchUrl(url);
-      if(fetched){const parsed=parsePoolTable(fetched.html);if(parsed){cacheSet(CACHE_KEYS[key],parsed);poolSource[key]='live';poolHeaders[key]=parsed.headers;poolData[key]={grid:buildGrid(parsed)};setPill(key,'live');anyLive=true;return;}}
-    }catch(e){}
-  });
+  const url=URLS[key];
+
+  console.log('====================');
+  console.log('POOL:', key);
+  console.log('URL:', url);
+
+  try{
+    const fetched=await fetchUrl(url);
+
+    if(!fetched){
+      console.error('FETCH FAILED:', key);
+      return;
+    }
+
+    console.log('FETCH SUCCESS:', key);
+    console.log('HTML LENGTH:', fetched.html ? fetched.html.length : 0);
+
+    const parsed=parsePoolTable(fetched.html);
+
+    if(!parsed){
+      console.error('PARSE FAILED:', key);
+      console.log('FIRST 1000 CHARS OF HTML:');
+      console.log(fetched.html.substring(0,1000));
+      return;
+    }
+
+    console.log('PARSE SUCCESS:', key);
+    console.log('HEADERS:', parsed.headers);
+
+    cacheSet(CACHE_KEYS[key],parsed);
+    poolSource[key]='live';
+    poolHeaders[key]=parsed.headers;
+    poolData[key]={grid:buildGrid(parsed)};
+    setPill(key,'live');
+    anyLive=true;
+
+  }catch(e){
+    console.error('ERROR:', key, e);
+  }
+});
   await Promise.all(promises);
   updateConnLabel();initDays();renderAll();
 
