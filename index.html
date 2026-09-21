@@ -399,7 +399,15 @@ async function loadAllData(){
     console.log('FETCH SUCCESS:', key);
     console.log('HTML LENGTH:', fetched.html ? fetched.html.length : 0);
 
-    const parsed=parsePoolTable(fetched.html);
+  const parsed=parsePoolTable(fetched.html);
+
+if(!parsed){
+    document.body.innerHTML =
+        '<pre style="white-space:pre-wrap;font-size:12px">' +
+        fetched.html.substring(0,5000) +
+        '</pre>';
+    return;
+}
 
     if(!parsed){
       console.error('PARSE FAILED:', key);
